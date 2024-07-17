@@ -1,0 +1,145 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import skew, kurtosis
+
+df = pd.read_csv('enron.csv')
+df.head(5)
+
+num_instancias = len(df)
+num_var_desc = df.shape[1]
+contagens = df['poi'].value_counts()
+contagem_poi = int(contagens.get(True, 0))
+contagem_s_poi = int(contagens.get(False, 0))
+medias_var_num = df.select_dtypes(include=['number']).mean()
+medianas_var_num = df.select_dtypes(include=['number']).median()
+varian_var_num = df.select_dtypes(include=['number']).var()
+desvp_var_num = df.select_dtypes(include=['number']).std()
+q1 = df.select_dtypes(include=['number']).quantile(0.25)
+q2 = df.select_dtypes(include=['number']).quantile(0.5)
+q3 = df.select_dtypes(include=['number']).quantile(0.75)
+moda_var_cat = df.select_dtypes(include=['object']).mode()
+colunas_objeto = df.select_dtypes(include=['object'])
+vu_var_cat = colunas_objeto.apply(pd.unique)
+
+results = {
+    'Instâncias': num_instancias,
+    'Variáveis descritivas': num_var_desc,
+    'Pessoas de interesse (POI)': contagem_poi,
+    'Pessoas de NÃO interesse': contagem_s_poi
+}
+
+print(results)
+
+print(f'Média das variáveis numéricas:\n{medias_var_num}')
+print(f'Médiana das variáveis numéricas:\n{medianas_var_num}')
+print(f'Variância das variáveis numéricas:\n{varian_var_num}')
+print(f'Desvio padrão das variáveis numéricas:\n{desvp_var_num}')
+print(f'Q1 das variáveis numéricas:\n{q1}')
+print(f'Q2 das variáveis numéricas:\n{q2}')
+print(f'Q3 das variáveis numéricas:\n{q3}')
+print(f'Moda das variáveis categóricas:\n{moda_var_cat}')
+print(f'Valor único das variáveis categóricas:\n{vu_var_cat}')
+
+df_n = df.drop(columns=['name'])
+
+sns.set(style="whitegrid")
+
+
+def univariate_analysis(df):
+    for column in df_n.columns:
+        print(f"\n### {column} ###")
+        print(df[column].describe())
+
+        if pd.api.types.is_numeric_dtype(df[column]):
+            if df_n[column].dtype != 'bool':
+                skewness = skew(df_n[column].dropna())
+                kurt = kurtosis(df_n[column].dropna())
+                print(f"Skewness: {skewness}, Kurtosis: {kurt}")
+            else:
+                skewness = 'Não aplicável'
+                kurt = 'Não aplicável'
+                print("Skewness e Kurtosis não são aplicáveis para variáveis booleanas.")
+
+            plt.figure(figsize=(14, 6))
+
+            plt.subplot(1, 2, 1)
+            sns.histplot(df[column].dropna(), kde=True)
+            plt.title(f'Histograma de {column}')
+
+
+            plt.tight_layout()
+            plt.show()
+
+            print(f"A variável {column} tem skewness = {skewness} e kurtosis = {kurt}.")
+        else:
+            print(df_n[column].value_counts())
+            plt.figure(figsize=(10, 6))
+            sns.countplot(y=df_n[column], order=df_n[column].value_counts().index)
+            plt.title(f'Gráfico de Barras de {column}')
+            plt.show()
+
+
+
+univariate_analysis(df)
+
+df_filtered = df[df['name'] != 'TOTAL']
+
+selected_columns = ['name', 'exercised_stock_options', 'total_stock_value']
+subset_df = df_filtered[selected_columns].dropna()
+top_exercised_stock_options = subset_df.nlargest(5, 'exercised_stock_options')
+top_total_stock_value = subset_df.nlargest(5, 'total_stock_value')
+combined_df = pd.concat([top_exercised_stock_options, top_total_stock_value]).drop_duplicates().reset_index(drop=True)
+plt.figure(figsize=(12, 8))
+plt.bar(combined_df['name'], combined_df['exercised_stock_options'], width=0.4, label='Exercised Stock Options', align='center')
+plt.bar(combined_df['name'], combined_df['total_stock_value'], width=0.4, label='Total Stock Value', align='edge')
+plt.xlabel('Employee')
+plt.ylabel('Amount in Dollars')
+plt.title('Top 5 Exercised Stock Options and Total Stock Value')
+plt.xticks(rotation=90)
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
+df_filtered = df[df['name'] != 'TOTAL']
+
+selected_columns = ['name', 'bonus']
+subset_df = df_filtered[selected_columns].dropna()
+top_bonus = subset_df.nlargest(5, 'bonus')
+
+plt.figure(figsize=(12, 8))
+
+plt.bar(top_bonus['name'], top_bonus['bonus'], width=0.4, label='Bonus', align='center')
+
+plt.xlabel('Employee')
+plt.ylabel('Amount in Dollars')
+plt.title('Top 5 Bonuses')
+plt.xticks(rotation=90)
+plt.legend()
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
+
+df_filtered = df[df['name'] != 'TOTAL']
+
+selected_columns = ['name', 'salary']
+subset_df = df_filtered[selected_columns].dropna()
+top_bonus = subset_df.nlargest(5, 'salary')
+
+plt.figure(figsize=(12, 8))
+
+plt.bar(top_bonus['name'], top_bonus['salary'], width=0.4, label='Salário', align='center')
+
+plt.xlabel('Funcionário')
+plt.ylabel('Amount in Dollars')
+plt.title('Top 5 salários')
+plt.xticks(rotation=90)
+plt.legend()
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
